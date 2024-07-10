@@ -87,8 +87,8 @@ class Simulator():
                 v_s_on_vh = self._g2f(self.routes[cl](v[0]-.0)[:2].reshape((-1,1)),clh)
                 vh_psi=self.routes[clh](vh[0])[2]
 
-                if np.abs(np.sin(float(2*psi)))<=1e-3 and vh_s-v[0]>=0. and vh_s-v[0]<=30. and self._check_out_inter(cl,v[0]):
-                    if (vh[1]>=1 and vh_s-v[0]<=18) and (1<=(v_s_on_vh - vh[0]) <= 25):
+                if np.abs(np.sin(float(2*psi)))<=1e-3 and vh_s-v[0]>=0. and vh_s-v[0]<=10. and self._check_out_inter(cl,v[0]):
+                    if (vh[1]>=1 and vh_s-v[0]<=10) and (1<=(v_s_on_vh - vh[0]) <= 15):
                         ds=0.01
                         dv=8
                         if verbose:
@@ -181,18 +181,37 @@ class Simulator():
             if self.routes_pose[v.cl][-1,-1]-v.traj[0,v.t]<=0.01:
                 print("Resetting agent: {}".format(i+1))
                 print("Reached {}".format(v.traj[0,v.t]))
-                new_cl=sample(self.modes[self.sources[v.cl]],1)[0]
+                new_cl=sample(self.modes[self.sources[v.cl]][:3],1)[0]
 
 
-                if v.cl!=2 and v.cl!=4:
-                    next_init_close=False
-                    for vh in self.tvs:
-                        if vh!=v and self.sources[v.cl]==self.sources[vh.cl] and np.abs(vh.traj[0,vh.t])<=6.:
-                            next_init_close=True
+                # if v.cl!=2 and v.cl!=4:
+                #     next_init_close=False
+                #     for vh in self.tvs:
+                #         if vh!=v and self.sources[v.cl]==self.sources[vh.cl] and np.abs(vh.traj[0,vh.t])<=6.:
+                #             next_init_close=True
 
-                    init=np.array([-2.0,7.0]) if next_init_close else np.array([6.,6.0])
-                else:
-                    init=copy.copy(v.traj[:,v.t])
+                #     init=np.array([-2.0,7.0]) if next_init_close else np.array([6.,6.0])
+                # else:
+                #     init=copy.copy(v.traj[:,v.t])
+                init = np.array([0.0,8.0])
+                v.reset_vehicle(init, new_cl)
+        for i,v in enumerate(self.peds):
+            if self.routes_pose[v.cl][-1,-1]-v.traj[0,v.t]<=0.01:
+                print("Resetting agent: {}".format(i+1))
+                print("Reached {}".format(v.traj[0,v.t]))
+                new_cl=sample(self.modes[self.sources[v.cl]][-3:],1)[0]
+
+
+                # if v.cl!=2 and v.cl!=4:
+                #     next_init_close=False
+                #     for vh in self.tvs:
+                #         if vh!=v and self.sources[v.cl]==self.sources[vh.cl] and np.abs(vh.traj[0,vh.t])<=6.:
+                #             next_init_close=True
+
+                #     init=np.array([-2.0,7.0]) if next_init_close else np.array([6.,6.0])
+                # else:
+                #     init=copy.copy(v.traj[:,v.t])
+                init = np.array([0.0,1.0])
                 v.reset_vehicle(init, new_cl)
     
     def _check_collision(self):
@@ -217,6 +236,7 @@ class Simulator():
 
 
     def step(self, u_ev=None, verbose=False):
+        random.seed(100)
 
         for ind, v in enumerate(self.agents):
             if v != self.ev:
@@ -240,7 +260,7 @@ class Simulator():
                             v.cl = random.choice([8,9])
 
         self.ev.traj_glob[:,self.ev.t]=np.array(self.routes[self.ev.cl](self.ev.traj[0,self.ev.t])[:3]).squeeze()
-        if u_ev is not None:
+        if u_ev is None:
             v_ =[self.agents[k].traj[:,v.t] for k in self.tv_idxs]
             cl_=[v.cl for v in self.tvs]
             v_des, dv, ds= self._get_idm_params(self.ev.traj[:,self.ev.t], self.ev.cl, v_, cl_,verbose)
@@ -332,7 +352,7 @@ class Simulator():
                 mat=Rev@iSev@Rtv.T@self.agents[i].S@self.agents[i].S@Rtv@iSev@Rev.T
                 E, V =np.linalg.eigh(mat)
                 S=np.diag((E**(-0.5)+1.0)**(-2))
-                Qs[i][t]=Sev@Rev.T@V@S@V.T@Rev@Sev if t <=4 else (1/5**2)*np.eye(2)
+                Qs[i][t]=Sev@Rev.T@V@S@V.T@Rev@Sev if t <=4 else (1/2**2)*np.eye(2)
                 
             for i in ped_list:
                 v_des = self.routes[self.agents[i].cl](0.+o[i][0,t+1])[3]
@@ -347,7 +367,7 @@ class Simulator():
                 mat=Rev@iSev@Rtv.T@self.agents[i].S@self.agents[i].S@Rtv@iSev@Rev.T
                 E, V =np.linalg.eigh(mat)
                 S=np.diag((E**(-0.5)+1.0)**(-2))
-                Qs[i][t]=Sev@Rev.T@V@S@V.T@Rev@Sev if t <=4 else (1/5**2)*np.eye(2)
+                Qs[i][t]=Sev@Rev.T@V@S@V.T@Rev@Sev if t <=10 else (1/0.1**2)*np.eye(2)
                 
         mm_o      = [[copy.deepcopy(o[i]) for _ in range(self.n_modes[i])] for i,v in enumerate(self.agents) if v!=self.ev]
         mm_o_glob = [[copy.deepcopy(o_glob[i]) for _ in range(self.n_modes[i])] for i,v in enumerate(self.agents) if v!=self.ev]
@@ -364,6 +384,7 @@ class Simulator():
                 psi= self.routes[self.ev.cl](x[0,t+1])[2]
                 Rev=np.array([[np.cos(psi), np.sin(psi)],[-np.sin(psi), np.cos(psi)]]).squeeze().T
                 
+                # if outisde intersection, get multi-modal preds otherwise, get ground-truth preds
                 if  (self.sources[self.agents[i].cl]=="E" and self.agents[i].traj[0,self.t]<=self.routes_pose[2][-1,-1]+3.)\
                  or (self.sources[self.agents[i].cl]=="W" and self.agents[i].traj[0,self.t]<=51.+3.):
                     for j in modes:
@@ -389,7 +410,7 @@ class Simulator():
                         mat=Rev@iSev@Rtv.T@self.agents[i].S@self.agents[i].S@Rtv@iSev@Rev.T 
                         E, V =np.linalg.eigh(mat)
                         S=np.diag((E**(-0.5)+1.0)**(-2))
-                        mm_Qs[i][n][t]=Sev@Rev.T@V@S@V.T@Rev@Sev if t <=4 else (1/5**2)*np.eye(2)
+                        mm_Qs[i][n][t]=Sev@Rev.T@V@S@V.T@Rev@Sev if t <=4 else (1/2**2)*np.eye(2)
                         
         for i in ped_list:
             modes=list(set(self.modes[self.sources[self.agents[i].cl]])-set([self.agents[i].cl]))[-2:]
@@ -419,7 +440,7 @@ class Simulator():
                         mat=Rev@iSev@Rtv.T@self.agents[i].S@self.agents[i].S@Rtv@iSev@Rev.T 
                         E, V =np.linalg.eigh(mat)
                         S=np.diag((E**(-0.5)+1.0)**(-2))
-                        mm_Qs[i][n][t]=Sev@Rev.T@V@S@V.T@Rev@Sev if t <=4 else (1/5**2)*np.eye(2)
+                        mm_Qs[i][n][t]=Sev@Rev.T@V@S@V.T@Rev@Sev if t <=10 else (1/0.1**2)*np.eye(2)
 
         return x, x_glob, dx_glob, mm_o_glob, mm_u_tvs, mm_routes, mm_droutes, mm_Qs 
         

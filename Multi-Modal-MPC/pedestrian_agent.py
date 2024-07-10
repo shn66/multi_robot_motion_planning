@@ -71,7 +71,7 @@ class Agent():
                  role="TV",
                  cl=1,
                  dt=0.2,
-                 state=np.array([0., 8.]),
+                 state=np.array([0., 7.]),
                  noise_std=[0.01, 0.01],
                  T_max=1000,
                  A_max=5, 

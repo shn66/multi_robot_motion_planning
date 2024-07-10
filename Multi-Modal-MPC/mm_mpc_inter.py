@@ -170,8 +170,8 @@ class MM_MPC_TI(MPC_Base):
                 # if k > self.robust_horizon:
                 # robot_cost = robot_cost + mode_weight*(ca.mtimes([(opt_states[j][k, :]-opt_xs.T), Q, (opt_states[j][k, :]-opt_xs.T).T] 
                 #             )+ ca.mtimes([opt_controls[j][k, :], R, opt_controls[j][k, :].T]) + 100000 * opt_epsilon_r[j][k]) #+ 100000 * opt_epsilon_o[k]
-                robot_cost = robot_cost + mode_weight*(ca.mtimes([(opt_states[j][k, :]-opt_xs.T), Q, (opt_states[j][k, :]-opt_xs.T).T] 
-                    )+ ca.mtimes([opt_controls[j][k, :], R, opt_controls[j][k, :].T])) #+ 100000 * opt_epsilon_r[j][k]) 
+                robot_cost = robot_cost + mode_weight*(-10*opt_states[j][k,0]
+                    + ca.mtimes([opt_controls[j][k, :], R, opt_controls[j][k, :].T])) #+ 100000 * opt_epsilon_r[j][k]) 
                 # else:
                 #     new_ref = ref[k, :].reshape((3,1))
                 #     robot_cost = robot_cost + mode_weight*(ca.mtimes([(opt_states[j][k, :]- new_ref.T), Q, (opt_states[j][k, :]-new_ref.T).T] 
@@ -428,7 +428,7 @@ class MM_MPC_TI(MPC_Base):
                     # self.control_cache[agent_id].append(u[0])
                     # self.current_state[agent_id] = next_state
                     # self.state_cache[agent_id].append(next_state)
-                    Sim.step(0.)
+                    Sim.step(-5.0)
                 else:
                     # current_state = np.array(self.current_state[agent_id])
                     # next_state = self.shift_movement(current_state, u[0], self.f_np)
@@ -437,7 +437,7 @@ class MM_MPC_TI(MPC_Base):
                     # self.control_cache[agent_id].append(u[0])
                     # self.current_state[agent_id] = next_state
                     # self.state_cache[agent_id].append(next_state)
-                    Sim.step(u[0])
+                    Sim.step(u[0][0])
                     print("Agent state: ", Sim.ev.traj[:,Sim.t], " Agent control: ", u[0])
             self.num_timestep += 1
             time_2 = time.time()
